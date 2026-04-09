@@ -3,44 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Legacy AR VZLA - Experiencia Vertical Doble</title>
+    <title>Legacy AR VZLA - Experiencia Motor</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://unpkg.com/aframe-record-component@0.1.3/dist/aframe-record-component.min.js"></script>
+    
     <style>
-        body { margin: 0; overflow: hidden; font-family: sans-serif; background-color: black; }
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: black; }
         
-        /* Capa de inicio elegante con los colores de tu logo */
+        /* Capa de inicio con tu toque personal */
         #ui-overlay {
             position: absolute; z-index: 9999; 
             top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: radial-gradient(circle, #2c2c2c 0%, #000000 100%);
+            background: radial-gradient(circle, #1a1a1a 0%, #000000 100%);
             color: white; text-align: center; padding: 20px;
         }
 
         #startButton { 
-            padding: 18px 35px; border-radius: 12px; border: 2px solid #C0C0C0; 
-            background: transparent; color: #C0C0C0; font-size: 1.2rem; 
+            padding: 20px 40px; border-radius: 50px; border: 2px solid #00f2ff; 
+            background: rgba(0, 242, 255, 0.1); color: #00f2ff; font-size: 1.1rem; 
             font-weight: bold; cursor: pointer; transition: all 0.3s;
-            text-transform: uppercase; letter-spacing: 2px;
+            text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.3);
         }
 
-        #startButton:active { background: #C0C0C0; color: black; }
+        #startButton:active { background: #00f2ff; color: black; transform: scale(0.95); }
 
-        .instrucciones { margin-top: 20px; font-size: 0.9rem; opacity: 0.7; }
+        #recordBtn {
+            position: absolute; z-index: 1000; bottom: 40px; left: 50%;
+            transform: translateX(-50%); padding: 15px 35px;
+            border-radius: 50px; border: none; background: #e91e63;
+            color: white; font-weight: bold; font-size: 16px;
+            display: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .instrucciones { margin-top: 25px; font-size: 1rem; color: #C0C0C0; line-height: 1.4; }
+        .branding { color: #00f2ff; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div id="ui-overlay">
-        <h2 style="margin-bottom: 10px;">LEGACY AR VZLA</h2>
-        <button id="startButton">ACTIVAR CÁMARA</button>
-        <p class="instrucciones">Toca el botón y apunta a tu franela para ver la magia masiva.</p>
+        <h1 style="letter-spacing: 5px; margin-bottom: 5px;">LEGACY AR</h1>
+        <p style="margin-bottom: 30px; opacity: 0.6;">VENEZUELA</p>
+        
+        <button id="startButton">ACTIVA PARA VIVIR LA<br>EXPERIENCIA LEGACY</button>
+        
+        <p class="instrucciones">Una vez activado, enfoca el logo de <br><span class="branding">Legacy AR_VZLA</span> y descubre la magia.</p>
     </div>
 
+    <button id="recordBtn">🔴 GRABAR EXPERIENCIA</button>
+
     <a-scene 
+        record="precision: 0.6; fps: 30"
         mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiScanning: no; filterMinCF:0.0001; filterBeta:0.001;" 
-        color-space="sRGB" 
+        embedded color-space="sRGB" 
         renderer="colorManagement: true, physicallyCorrectLights" 
         vr-mode-ui="enabled: false" 
         device-orientation-permission-ui="enabled: false">
@@ -52,37 +70,58 @@
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0" id="target">
-            <a-video src="#miVideo" width="2" height="3.4" position="0 0.65 0" rotation="0 0 0"></a-video>
+            <a-video src="#miVideo" width="1.2" height="1.2" position="0 0 0.1" rotation="0 0 0"></a-video>
         </a-entity>
     </a-scene>
 
     <script>
         const ui = document.querySelector("#ui-overlay");
         const startButton = document.querySelector("#startButton");
+        const recordBtn = document.querySelector("#recordBtn");
         const video = document.querySelector("#miVideo");
         const sceneEl = document.querySelector('a-scene');
 
         startButton.addEventListener('click', () => {
             ui.style.display = "none";
+            recordBtn.style.display = "block";
             
-            // Iniciamos el motor de AR
             sceneEl.systems['mindar-image-system'].start(); 
             
-            // Pre-carga el video para evitar lag al detectar
+            // Forzar el audio en la interacción
+            video.muted = false;
             video.play().then(() => {
-                video.pause(); 
-            }).catch(e => console.log("Esperando detección..."));
+                video.pause(); // Lo dejamos listo para cuando detecte el logo
+            }).catch(e => {
+                console.log("Audio en espera");
+                video.muted = true;
+                video.play().then(() => video.pause());
+            });
         });
 
         const targetEntity = document.querySelector('#target');
-        
-        // Control de reproducción estilo Artivive
         targetEntity.addEventListener("targetFound", () => {
             video.play();
         });
 
         targetEntity.addEventListener("targetLost", () => {
             video.pause();
+        });
+
+        // Lógica de Grabación
+        let isRecording = false;
+        recordBtn.addEventListener('click', () => {
+            if (!isRecording) {
+                sceneEl.emit('start-recording');
+                recordBtn.innerText = "⏹️ DETENER Y GUARDAR";
+                recordBtn.style.background = "#fff";
+                recordBtn.style.color = "#000";
+            } else {
+                sceneEl.emit('stop-recording');
+                recordBtn.innerText = "🔴 GRABAR EXPERIENCIA";
+                recordBtn.style.background = "#e91e63";
+                recordBtn.style.color = "#fff";
+            }
+            isRecording = !isRecording;
         });
     </script>
 </body>
