@@ -1,70 +1,75 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
-        /* FORZAR PANTALLA COMPLETA REAL */
-        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: black; }
-        
-        canvas { width: 100vw !important; height: 100vh !important; position: absolute; top: 0; left: 0; }
-
+        body { margin: 0; overflow: hidden; background-color: black; }
         #ui { 
-            position: absolute; z-index: 9999; bottom: 10%; left: 50%; 
+            position: absolute; z-index: 9999; bottom: 30px; left: 50%; 
             transform: translateX(-50%); width: 100%; text-align: center;
         }
-        #startButton { 
-            padding: 20px 40px; border-radius: 50px; border: 2px solid #00f2ff; 
-            background: rgba(0, 0, 0, 0.8); color: #00f2ff; font-size: 18px; 
-            font-weight: bold; cursor: pointer; text-transform: uppercase;
+        button { 
+            padding: 20px 40px; border-radius: 50px; border: none; 
+            background: #e91e63; color: white; font-size: 18px; 
+            font-weight: bold; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         }
+        /* Esto asegura que el video oculto no interfiera pero esté listo */
+        #miVideo { position: absolute; width: 1px; height: 1px; opacity: 0; }
     </style>
 </head>
 <body>
     <div id="ui">
-       <button id="startButton">ACTIVA PARA VIVIR LA<br>EXPERIENCIA LEGACY</button>
+        <button id="playButton">VER VIDEO EN PANTALLA COMPLETA</button>
     </div>
 
-    <a-scene 
-        mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiScanning: no;" 
-        embedded
-        color-space="sRGB" 
-        renderer="colorManagement: true, physicallyCorrectLights" 
-        vr-mode-ui="enabled: false" 
-        device-orientation-permission-ui="enabled: false">
-        
-        <a-assets>
-            <video id="miVideo" src="./video.mp4" loop="true" crossorigin="anonymous" webkit-playsinline playsinline></video>
-        </a-assets>
+    <video id="miVideo" src="./video.mp4" preload="auto" crossorigin="anonymous" webkit-playsinline playsinline></video>
 
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: true;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+        
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <a-entity mindar-image-target="targetIndex: 0" id="target">
-            <a-video src="#miVideo" width="1.2" height="2" position="0 0 0.1"></a-video>
+        <a-entity mindar-image-target="targetIndex: 0">
+            <a-video src="#miVideo" width="0.6" height="1" position="0 0 0" opacity="1"></a-video>
         </a-entity>
     </a-scene>
 
     <script>
-        const startBtn = document.querySelector("#startButton");
+        const btn = document.querySelector("#playButton");
         const video = document.querySelector("#miVideo");
-        const sceneEl = document.querySelector('a-scene');
 
-        startBtn.addEventListener('click', function() {
+        btn.addEventListener('click', function() {
+            // Quitamos el botón
             document.querySelector("#ui").style.display = "none";
             
-            // Iniciar motor de cámara
-            sceneEl.systems['mindar-image-system'].start();
-            
-            // Play y pausa rápida para "despertar" el video con audio
-            video.play().then(() => {
-                video.pause(); 
-            });
+            // Iniciamos reproducción
+            video.play();
+
+            // TRUCO FINAL PARA PANTALLA COMPLETA
+            // Si es iPhone (Safari) usamos webkitEnterFullscreen
+            if (video.webkitEnterFullscreen) {
+                video.webkitEnterFullscreen();
+            } 
+            // Si es Android usamos el estándar
+            else if (video.requestFullscreen) {
+                video.requestFullscreen();
+            } else if (video.webkitRequestFullscreen) {
+                video.webkitRequestFullscreen();
+            }
         });
 
-        const targetEntity = document.querySelector('#target');
-        targetEntity.addEventListener("targetFound", () => { video.play(); });
-        targetEntity.addEventListener("targetLost", () => { video.pause(); });
+        // Detectar cuando el video termina o el usuario cierra la pantalla completa
+        const cerrarVideo = () => {
+            video.pause();
+            // Opcional: recargar la página para volver a escanear
+            // window.location.reload(); 
+        };
+
+        video.addEventListener('webkitendfullscreen', cerrarVideo);
+        video.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) cerrarVideo();
+        });
     </script>
 </body>
 </html>
