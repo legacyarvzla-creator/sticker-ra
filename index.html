@@ -1,30 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-    <script src="https://unpkg.com/aframe-record-component@0.1.3/dist/aframe-record-component.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; background-color: black; font-family: sans-serif; }
+        /* FORZAR PANTALLA COMPLETA REAL */
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: black; }
+        
+        canvas { width: 100vw !important; height: 100vh !important; position: absolute; top: 0; left: 0; }
+
         #ui { 
-            position: absolute; z-index: 9999; bottom: 30px; left: 50%; 
+            position: absolute; z-index: 9999; bottom: 10%; left: 50%; 
             transform: translateX(-50%); width: 100%; text-align: center;
         }
         #startButton { 
-            padding: 20px 40px; border-radius: 50px; border: none; 
-            background: #e91e63; color: white; font-size: 18px; 
-            font-weight: bold; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-            cursor: pointer;
+            padding: 20px 40px; border-radius: 50px; border: 2px solid #00f2ff; 
+            background: rgba(0, 0, 0, 0.8); color: #00f2ff; font-size: 18px; 
+            font-weight: bold; cursor: pointer; text-transform: uppercase;
         }
-        #recordBtn {
-            position: absolute; z-index: 1000; top: 20px; right: 20px;
-            padding: 12px 20px; border-radius: 50px; border: none;
-            background: #00f2ff; color: #000; font-weight: bold;
-            display: none; cursor: pointer;
-        }
-        /* Ocultamos el video base para que no estorbe */
-        #miVideo { position: absolute; width: 1px; height: 1px; opacity: 0; }
     </style>
 </head>
 <body>
@@ -32,48 +26,40 @@
        <button id="startButton">ACTIVA PARA VIVIR LA<br>EXPERIENCIA LEGACY</button>
     </div>
 
-    <button id="recordBtn">🔴 GRABAR</button>
-
-    <video id="miVideo" src="./video.mp4" preload="auto" loop="true" crossorigin="anonymous" webkit-playsinline playsinline></video>
-
-    <a-scene record="fps: 30" mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiScanning: no;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+    <a-scene 
+        mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiScanning: no;" 
+        embedded
+        color-space="sRGB" 
+        renderer="colorManagement: true, physicallyCorrectLights" 
+        vr-mode-ui="enabled: false" 
+        device-orientation-permission-ui="enabled: false">
         
+        <a-assets>
+            <video id="miVideo" src="./video.mp4" loop="true" crossorigin="anonymous" webkit-playsinline playsinline></video>
+        </a-assets>
+
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0" id="target">
-            <a-video src="#miVideo" width="0.6" height="1" position="0 0 0"></a-video>
+            <a-video src="#miVideo" width="1.2" height="2" position="0 0 0.1"></a-video>
         </a-entity>
     </a-scene>
 
     <script>
-        // Sincronizado con el ID del botón HTML
         const startBtn = document.querySelector("#startButton");
-        const recordBtn = document.querySelector("#recordBtn");
         const video = document.querySelector("#miVideo");
         const sceneEl = document.querySelector('a-scene');
 
         startBtn.addEventListener('click', function() {
             document.querySelector("#ui").style.display = "none";
-            recordBtn.style.display = "block";
             
-            // Iniciamos el motor de AR
+            // Iniciar motor de cámara
             sceneEl.systems['mindar-image-system'].start();
-            video.play();
-        });
-
-        // Lógica de grabación
-        let isRecording = false;
-        recordBtn.addEventListener('click', () => {
-            if (!isRecording) {
-                sceneEl.emit('start-recording');
-                recordBtn.innerText = "⏹️ GUARDAR";
-                recordBtn.style.background = "#fff";
-            } else {
-                sceneEl.emit('stop-recording');
-                recordBtn.innerText = "🔴 GRABAR";
-                recordBtn.style.background = "#00f2ff";
-            }
-            isRecording = !isRecording;
+            
+            // Play y pausa rápida para "despertar" el video con audio
+            video.play().then(() => {
+                video.pause(); 
+            });
         });
 
         const targetEntity = document.querySelector('#target');
